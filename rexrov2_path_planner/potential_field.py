@@ -3,11 +3,11 @@ from collections import deque
 
 
 class PotentialField:
-    def __init__(self):
-        self.kp = 5.0
-        self.eta = 100.0
-        self.oscillation_length = 3
-        self.area_width = 30.0
+    def __init__(self, kp=5.0, eta=100.0, ol=3, aw=30.0):
+        self.kp = kp
+        self.eta = eta
+        self.oscillation_length = ol
+        self.area_width = aw
         self.pmap = []
         self.minx = 0.0
         self.miny = 0.0
@@ -97,7 +97,7 @@ class PotentialField:
 
         return False
 
-    def cal_potential_field(self, gx, gy, ox, oy, reso, rr, sx, sy):
+    def cal_potential_field(self, sx, sy, gx, gy, ox, oy, reso, rr):
         """
         Calculate the potential field over a given area based on the locations of the goal, obstacles, and start point.
 
@@ -156,33 +156,25 @@ class PotentialField:
 
         # calculate the potential field
         self.pmap, self.minx, self.miny = self.cal_potential_field(
-            gx, gy, ox, oy, reso, rr, sx, sy)
+            sx, sy, gx, gy, ox, oy, reso, rr)
         # convert the start point and goal to cell indices
+        d = np.hypot(sx - gx, sy - gy)
         ix = round((sx - self.minx) / reso)
         iy = round((sy - self.miny) / reso)
         gix = round((gx - self.minx) / reso)
         giy = round((gy - self.miny) / reso)
 
         # initialize the path with the start point
-        path = [(ix, iy)]
+        path = [(sx, sy)]
         # initialize the list of previous cell indices
         previous_ids = deque()
         # initialize the flag for oscillation detection
         oscillation = False
 
-        while True:
+        while d >= reso:
             # check if we have reached the goal
-            if ix == gix and iy == giy:
-                break
-
-            # check if we are stuck in an oscillation
-            oscillation = self.oscillations_detection(previous_ids, ix, iy)
-            if oscillation:
-                # backtrack to the last cell with a lower potential
-                ix, iy = previous_ids[-2]
-                path.pop()  # remove the oscillating point from the path
-                previous_ids.clear()  # clear the list of previous cells
-                continue
+            # if ix == gix and iy == giy:
+            #     break
 
             minp = float("inf")
             minix, miniy = -1, -1
@@ -199,6 +191,16 @@ class PotentialField:
 
             # move to the cell with the lowest potential
             ix, iy = minix, miniy
-            path.append((ix, iy))
+            xp = ix * reso + self.minx
+            yp = iy * reso + self.miny
+            d = np.hypot(gx - xp, gy - yp)
+            path.append((xp, yp))
+            
+            
+            # check if we are stuck in an oscillation
+            oscillation = self.oscillations_detection(previous_ids, ix, iy)
+            if oscillation:
+                print("Oscillation detected at ({},{})!".format(ix, iy))
+                break
 
         return path
