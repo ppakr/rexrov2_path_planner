@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'rexrov2_path_planner = rexrov2_path_planner.path_planner:main',
         ],
     },
 )
